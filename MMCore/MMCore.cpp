@@ -8175,79 +8175,6 @@ void CMMCore::closeDataset(int handle) throw (CMMError)
 }
 
 /**
- * Prevent further changes to the dataset.
- * The handle is still valid and the data is available for reading.
- * Once frozen dataset can't be thawed again.
- *
- * \param handle - handle to the open dataset
- */
-void CMMCore::freezeDataset(int handle) throw(CMMError)
-{
-   // TODO:
-   throw CMMError("Feature not supported", MMERR_GENERIC);
-}
-
-int CMMCore::loadDatasetImpl(std::shared_ptr<StorageInstance> pStorage, const char* path) throw (CMMError)
-{
-   if (!pStorage)
-      throw CMMError(getCoreErrorText(MMERR_StorageNotAvailable).c_str(), MMERR_StorageNotAvailable);
-
-   int handle = nextDatasetHandle_++;
-   {
-      mm::DeviceModuleLockGuard guard(pStorage);
-      int ret = pStorage->Load(handle, path);
-      if (ret != DEVICE_OK)
-      {
-         logError(getDeviceName(pStorage).c_str(), getDeviceErrorText(ret, pStorage).c_str());
-         throw CMMError(getDeviceErrorText(ret, pStorage).c_str(), MMERR_DEVICE_GENERIC);
-         // We don't reuse failed handle values, but that's okay.
-      }
-   }
-   openDatasetDevices_.insert({ handle, pStorage });
-   return handle;
-}
-
-/**
- * Open an existing dataset in the specifed path.
- *
- * \param path - parent directory for the dataset
- * \param name - name for the dataset
- * \return - handle for the opened dataset
- */
-int CMMCore::loadDataset(const char* path) throw (CMMError)
-{
-   std::shared_ptr<StorageInstance> pStorage = currentStorage_.lock();
-   return loadDatasetImpl(pStorage, path);
-}
-
-/**
- * Open an existing dataset in the specifed path.
- *
- * \param deviceLabel - specific storage device that we want to use
- * \param path - parent directory for the dataset
- * \param name - name for the dataset
- * \return - handle for the opened dataset
- */
-int CMMCore::loadDataset(const char* deviceLabel, const char* path) throw(CMMError)
-{
-   auto pStorage = deviceManager_->GetDeviceOfType<StorageInstance>(deviceLabel);
-   return loadDatasetImpl(pStorage, path);
-}
-
-/**
- * Returns the device that can open a given dataset.
- * It will cycle trough all loaded storage devices and find which one can open the dataset.
- * 
- * \param path - path of the dataset
- * \return - device name, or empty string if it can not find any devices
- */
-std::string CMMCore::getDeviceNameToOpenDataset(const char* path)
-{
-   // TODO:
-   throw CMMError("Feature not supported", MMERR_GENERIC);
-}
-
-/**
  * Get dataset path
  * 
  * \param handle - handle to the open dataset
@@ -8265,34 +8192,6 @@ std::string CMMCore::getDatasetPath(int handle) throw(CMMError)
       throw CMMError(getDeviceErrorText(ret, pStorage).c_str(), MMERR_DEVICE_GENERIC);
    }
    return path;
-}
-
-/**
- * Check if dataset is open
- * 
- * \param handle - handle to the open dataset
- * \return - Dataset is open
- */
-bool CMMCore::isDatasetOpen(int handle)
-{
-   auto pStorage = getStorageInstanceFromHandle(handle);
-   mm::DeviceModuleLockGuard guard(pStorage);
-   std::vector<long> shape;
-   return pStorage->IsOpen(handle);
-}
-
-/**
- * Check if dataset is read-only (or in WRITE mode)
- * 
- * \param handle - handle to the open dataset
- * \return - Dataset is read-only
- */
-bool CMMCore::isDatasetReadOnly(int handle)
-{
-   auto pStorage = getStorageInstanceFromHandle(handle);
-   mm::DeviceModuleLockGuard guard(pStorage);
-   std::vector<long> shape;
-   return pStorage->IsReadOnly(handle);
 }
 
 /**
@@ -8385,236 +8284,7 @@ void CMMCore::appendImageToDataset(int handle, int sizeInShorts, const STORAGEIM
 }
 
 /**
- * Configure metadata for a given dimension.
- * 
- * \param handle - handle for the dataset
- * \param dimension - dimension index
- * \param name - name of the dimension
- * \param meaning - Z,T,C, etc. (physical meaning)
- */
-void CMMCore::configureDatasetDimension(int handle, int dimension, const char* name, const char* meaning) throw (CMMError)
-{
-   auto pStorage = getStorageInstanceFromHandle(handle);
-   mm::DeviceModuleLockGuard guard(pStorage);
-   int ret = pStorage->ConfigureDimension(handle, dimension, name, meaning);
-   if (ret != DEVICE_OK)
-   {
-      logError(getDeviceName(pStorage).c_str(), getDeviceErrorText(ret, pStorage).c_str());
-      throw CMMError(getDeviceErrorText(ret, pStorage).c_str(), MMERR_DEVICE_GENERIC);
-   }
-}
-
-/**
- * Configure a particular coordinate name. E.g. channel name or position name.
- * 
- * \param handle - dataset handle
- * \param dimension - dimension index
- * \param coordinate - coordinate index
- * \param name - coordinate name
- */
-void CMMCore::configureDatasetCoordinate(int handle, int dimension, int coordinate, const char* name) throw (CMMError)
-{
-   auto pStorage = getStorageInstanceFromHandle(handle);
-   mm::DeviceModuleLockGuard guard(pStorage);
-   int ret = pStorage->ConfigureCoordinate(handle, dimension, coordinate, name);
-   if (ret != DEVICE_OK)
-   {
-      logError(getDeviceName(pStorage).c_str(), getDeviceErrorText(ret, pStorage).c_str());
-      throw CMMError(getDeviceErrorText(ret, pStorage).c_str(), MMERR_DEVICE_GENERIC);
-   }
-}
-
-/**
- * Obtain a dataset dimension name
- * 
- * \param handle - dataset handle
- * \param dimension - dimension index
- */
-std::string CMMCore::getDatasetDimensionName(int handle, int dimension) throw (CMMError)
-{
-   auto pStorage = getStorageInstanceFromHandle(handle);
-   mm::DeviceModuleLockGuard guard(pStorage);
-   std::string name, meaning;
-   int ret = pStorage->GetDimension(handle, dimension, name, meaning);
-   if (ret != DEVICE_OK)
-   {
-      logError(getDeviceName(pStorage).c_str(), getDeviceErrorText(ret, pStorage).c_str());
-      throw CMMError(getDeviceErrorText(ret, pStorage).c_str(), MMERR_DEVICE_GENERIC);
-   }
-   return name;
-}
-
-/**
- * Obtain a dataset dimension physical meaning (Z,T,C, etc)
- * 
- * \param handle - dataset handle
- * \param dimension - dimension index
- */
-std::string CMMCore::getDatasetDimensionMeaning(int handle, int dimension) throw (CMMError)
-{
-   auto pStorage = getStorageInstanceFromHandle(handle);
-   mm::DeviceModuleLockGuard guard(pStorage);
-   std::string name, meaning;
-   int ret = pStorage->GetDimension(handle, dimension, name, meaning);
-   if (ret != DEVICE_OK)
-   {
-      logError(getDeviceName(pStorage).c_str(), getDeviceErrorText(ret, pStorage).c_str());
-      throw CMMError(getDeviceErrorText(ret, pStorage).c_str(), MMERR_DEVICE_GENERIC);
-   }
-   return meaning;
-}
-
-/**
- * Obtain dataset coordinate name
- * 
- * \param handle - dataset handle
- * \param dimension - dimension index
- * \param coordinate - coordinate index
- */
-std::string CMMCore::getDatasetCoordinateName(int handle, int dimension, int coordinate) throw (CMMError)
-{
-   auto pStorage = getStorageInstanceFromHandle(handle);
-   mm::DeviceModuleLockGuard guard(pStorage);
-   std::string name;
-   int ret = pStorage->GetCoordinate(handle, dimension, coordinate, name);
-   if (ret != DEVICE_OK)
-   {
-      logError(getDeviceName(pStorage).c_str(), getDeviceErrorText(ret, pStorage).c_str());
-      throw CMMError(getDeviceErrorText(ret, pStorage).c_str(), MMERR_DEVICE_GENERIC);
-   }
-   return name;
-}
-
-/**
- * Get dataset actual image count
- * 
- * \param handle - dataset handle
- */
-int CMMCore::getDatasetImageCount(int handle) throw (CMMError)
-{
-   auto pStorage = getStorageInstanceFromHandle(handle);
-   mm::DeviceModuleLockGuard guard(pStorage);
-   int imgcount = 0;
-   int ret = pStorage->GetImageCount(handle, imgcount);
-   if (ret != DEVICE_OK)
-   {
-      logError(getDeviceName(pStorage).c_str(), getDeviceErrorText(ret, pStorage).c_str());
-      throw CMMError(getDeviceErrorText(ret, pStorage).c_str(), MMERR_DEVICE_GENERIC);
-   }
-   return imgcount;
-}
-
-/**
- * Returns summary metadata serialized as a string
- * 
- * \param handle - handle of the currently loaded or open dataset
- */
-std::string CMMCore::getDatasetSummaryMeta(int handle) throw (CMMError)
-{
-   auto pStorage = getStorageInstanceFromHandle(handle);
-   mm::DeviceModuleLockGuard guard(pStorage);
-   std::string meta;
-   int ret = pStorage->GetSummaryMeta(handle, meta);
-   if (ret != DEVICE_OK)
-   {
-      logError(getDeviceName(pStorage).c_str(), getDeviceErrorText(ret, pStorage).c_str());
-      throw CMMError(getDeviceErrorText(ret, pStorage).c_str(), MMERR_StorageMetadataNotAvailable);
-   }
-   return meta;
-}
-
-/**
- * @brief Retrieves metadata for an image at specified coordinates
- *
- * @param handle open dataset handle
- * @param coordinates A vector of spatial coordinates identifying the specific image
- *
- * @return std::string image metadata as JSON encoded string
- */
-std::string CMMCore::getDatasetImageMeta(int handle, const std::vector<long>& coordinates) throw (CMMError)
-{
-   auto pStorage = getStorageInstanceFromHandle(handle);
-   mm::DeviceModuleLockGuard guard(pStorage);
-   std::string meta;
-   std::vector<int> coords(coordinates.begin(), coordinates.end());
-   int ret = pStorage->GetImageMeta(handle, coords, meta);
-   if (ret != DEVICE_OK)
-   {
-      logError(getDeviceName(pStorage).c_str(), getDeviceErrorText(ret, pStorage).c_str());
-      throw CMMError(getDeviceErrorText(ret, pStorage).c_str(), MMERR_StorageMetadataNotAvailable);
-   }
-   return meta;
-}
-
-/**
- * Sets custom metadata for a given dataset.
- * Custom metadata is re-writable, i.e. it can be called at any time,
- * during acquisition or after.
- *
- * @param handle   Dataset handle to set metadata for
- * @param key      Metadata key/name identifier
- * @param meta     Metadata string to be stored
- * @param metaLength length of the metadata string
- *
- * @throws MMCoreException If the specified device handle is invalid or key not found
- */
-void CMMCore::setDatasetCustomMeta(int handle, const char* key, const char* meta, int metaLength)
-{
-   auto pStorage = getStorageInstanceFromHandle(handle);
-   mm::DeviceModuleLockGuard guard(pStorage);
-   int ret = pStorage->SetCustomMeta(handle, key, meta, metaLength);
-   if (ret != DEVICE_OK)
-   {
-      logError(getDeviceName(pStorage).c_str(), getDeviceErrorText(ret, pStorage).c_str());
-      throw CMMError("Error writing custom metadata", MMERR_DEVICE_GENERIC);
-   }
-}
-
-/**
- * Retrieves custom metadata for a given dataset.
- *
- * @param handle    Dataset handle to get metadata from
- * @param key      Metadata key/name identifier
- *
- * @return         Stored metadata string for the specified key
- * @throws MMCoreException If the specified device handle is invalid or key not found
- */
-std::string CMMCore::getDatasetCustomMeta(int handle, const char* key)
-{
-   auto pStorage = getStorageInstanceFromHandle(handle);
-   mm::DeviceModuleLockGuard guard(pStorage);
-   std::string meta;
-   int ret = pStorage->GetCustomMeta(handle, key, meta);
-   if (ret != DEVICE_OK)
-   {
-      logError(getDeviceName(pStorage).c_str(), getDeviceErrorText(ret, pStorage).c_str());
-      throw CMMError(getDeviceErrorText(ret, pStorage).c_str(), MMERR_StorageMetadataNotAvailable);
-   }
-   return meta;
-}
-
-/**
- * Returns image pixels at specified coordinates
- * \param handle - dataset handle
- * \param coordinates - array of coordinates, one for each dimension
- * \return - image pixels
- */
-STORAGEIMGOUT CMMCore::getImageFromDataset(int handle, const std::vector<long>& coordinates) throw (CMMError)
-{
-   auto pStorage = getStorageInstanceFromHandle(handle);
-   mm::DeviceModuleLockGuard guard(pStorage);
-   std::vector<int> coords(coordinates.begin(), coordinates.end());
-   const unsigned char* img = pStorage->GetImage(handle, coords);
-   if (!img)
-   {
-      logError("CMMCore::getImage()", getCoreErrorText(MMERR_StorageImageNotAvailable).c_str());
-      throw CMMError(getCoreErrorText(MMERR_StorageImageNotAvailable).c_str(), MMERR_StorageImageNotAvailable);
-   }
-   return const_cast<unsigned char*>(img);
-}
-
-/**
- * Snaps an image on the default camera and immediately save to specified dataset.
+ * Snaps an image on the default camera and immediately append to specified dataset.
  * This can be used instead of getImage() and addImage() combination,
  * to save the roundtrip of binary data from and to MMCore.
  * 
@@ -8624,7 +8294,7 @@ STORAGEIMGOUT CMMCore::getImageFromDataset(int handle, const std::vector<long>& 
  * \param imageMeta - image metadata that we wish to add to the image
  * \param imageMetaLenght - length of the image metadata
  */
-void CMMCore::snapAndAppendToDataset(int handle, const std::vector<long>& coordinates, const char* imageMeta, int imageMetaLength) throw (CMMError)
+void CMMCore::snapAndAppendToDataset(int handle, const char* imageMeta, int imageMetaLength) throw (CMMError)
 {
    snapImage();
 
@@ -8632,83 +8302,30 @@ void CMMCore::snapAndAppendToDataset(int handle, const std::vector<long>& coordi
    // and disrupt the function
 
    std::shared_ptr<CameraInstance> camera = currentCameraDevice_.lock();
-   try {
-      // get image
-      mm::DeviceModuleLockGuard guard(camera);
-      auto pBuf = const_cast<unsigned char*> (camera->GetImageBuffer());
-      if (!pBuf)
-      {
-         logError("CMMCore::getImage()", getCoreErrorText(MMERR_CameraBufferReadFailed).c_str());
-         throw CMMError(getCoreErrorText(MMERR_CameraBufferReadFailed).c_str(), MMERR_CameraBufferReadFailed);
-      }
 
-      // process the image
-      std::shared_ptr<ImageProcessorInstance> imageProcessor = currentImageProcessor_.lock();
-      if (imageProcessor)
-      {
-         imageProcessor->Process((unsigned char*)pBuf, camera->GetImageWidth(), camera->GetImageHeight(), camera->GetImageBytesPerPixel());
-      }
-
-      // store the image
-      auto pStorage = getStorageInstanceFromHandle(handle);
-      mm::DeviceModuleLockGuard storageGuard(pStorage);
-      int ret(0);
-      int imageSize = camera->GetImageWidth() * camera->GetImageHeight() * camera->GetImageBytesPerPixel();
-
-      if (coordinates.empty())
-      {
-         ret = pStorage->AppendImage(handle, imageSize, pBuf, imageMeta, imageMetaLength);
-      }
-      else
-      {
-         std::vector<int> coords(coordinates.begin(), coordinates.end());
-         ret = pStorage->AddImage(handle, imageSize, pBuf, coords, imageMeta, imageMetaLength);
-      }
-      if (ret != DEVICE_OK)
-      {
-         logError(getDeviceName(pStorage).c_str(), getDeviceErrorText(ret, pStorage).c_str());
-         throw CMMError(getDeviceErrorText(ret, pStorage).c_str(), MMERR_DEVICE_GENERIC);
-      }
-
+   // get image
+   mm::DeviceModuleLockGuard guard(camera);
+   auto pBuf = const_cast<unsigned char*> (camera->GetImageBuffer());
+   if (!pBuf)
+   {
+      logError("CMMCore::getImage()", getCoreErrorText(MMERR_CameraBufferReadFailed).c_str());
+      throw CMMError(getCoreErrorText(MMERR_CameraBufferReadFailed).c_str(), MMERR_CameraBufferReadFailed);
    }
-   catch (CMMError& e) {
-      throw e;
-   }
-   catch (...) {
-      logError("CMMCore::snapAndSave()", getCoreErrorText(MMERR_UnhandledException).c_str());
-      throw CMMError(getCoreErrorText(MMERR_UnhandledException).c_str(), MMERR_UnhandledException);
-   }
-}
 
-/**
- * Pops the next image from the circular buffer and saves it to the dataset.
- * This is the counterpart to popNextImage(). Instead of fetching image pixels it
- * it sends image directly to the storage.
- * 
- * \param handle - currently open dataset handle
- * \param imageMeta - image metadata
- * \param imageMetaLength - image metadata length
- */
-void CMMCore::appendNextToDataset(int handle, const std::vector<long>& coordinates, const char* imageMeta, int imageMetaLength) throw (CMMError)
-{
-   const mm::ImgBuffer* img = cbuf_->GetNextImageBuffer(0);
-   if (!img)
-      throw CMMError(getCoreErrorText(MMERR_CircularBufferEmpty).c_str(), MMERR_CircularBufferEmpty);
+   // process the image
+   std::shared_ptr<ImageProcessorInstance> imageProcessor = currentImageProcessor_.lock();
+   if (imageProcessor)
+   {
+      imageProcessor->Process((unsigned char*)pBuf, camera->GetImageWidth(), camera->GetImageHeight(), camera->GetImageBytesPerPixel());
+   }
 
    // store the image
    auto pStorage = getStorageInstanceFromHandle(handle);
+   mm::DeviceModuleLockGuard storageGuard(pStorage);
    int ret(0);
-   int imageSize = img->Width() * img->Height() * img->Depth();
-   mm::DeviceModuleLockGuard guard(pStorage);
-   if (coordinates.empty())
-   {
-      ret = pStorage->AppendImage(handle, imageSize, const_cast<unsigned char*>(img->GetPixels()), imageMeta, imageMetaLength);
-   }
-   else
-   {
-      std::vector<int> coords(coordinates.begin(), coordinates.end());
-      ret = pStorage->AddImage(handle, imageSize, const_cast<unsigned char*>(img->GetPixels()), coords, imageMeta, imageMetaLength);
-   }
+   int imageSize = camera->GetImageWidth() * camera->GetImageHeight() * camera->GetImageBytesPerPixel();
+
+   ret = pStorage->AppendImage(handle, imageSize, pBuf, imageMeta, imageMetaLength);
    if (ret != DEVICE_OK)
    {
       logError(getDeviceName(pStorage).c_str(), getDeviceErrorText(ret, pStorage).c_str());
@@ -8717,16 +8334,15 @@ void CMMCore::appendNextToDataset(int handle, const std::vector<long>& coordinat
 }
 
 /**
- * Pops the next image from the circular buffer and saves it to the dataset.
- * This function merges popNextImage() and saveNextImage(). In addition to returning the image it also
- * sends it to storage. The use case is when we want to save and display the image at the same time.
- *
+ * Pops the next image from the circular buffer and appends it to the dataset.
+ * This is the counterpart to popNextImage(). Instead of fetching image pixels it
+ * it sends image directly to the storage.
+ * 
  * \param handle - currently open dataset handle
  * \param imageMeta - image metadata
- * \param imageMetaLength - length of the image metadata
- * \return - image pixels
+ * \param imageMetaLength - image metadata length
  */
-STORAGEIMGOUT CMMCore::appendAndGetNextToDataset(int handle, const std::vector<long>& coordinates, const char* imageMeta, int imageMetaLength) throw(CMMError)
+void CMMCore::appendNextToDataset(int handle, const char* imageMeta, int imageMetaLength) throw (CMMError)
 {
    const mm::ImgBuffer* img = cbuf_->GetNextImageBuffer(0);
    if (!img)
@@ -8737,15 +8353,36 @@ STORAGEIMGOUT CMMCore::appendAndGetNextToDataset(int handle, const std::vector<l
    int ret(0);
    int imageSize = img->Width() * img->Height() * img->Depth();
    mm::DeviceModuleLockGuard guard(pStorage);
-   if (coordinates.empty())
+   ret = pStorage->AppendImage(handle, imageSize, const_cast<unsigned char*>(img->GetPixels()), imageMeta, imageMetaLength);
+   if (ret != DEVICE_OK)
    {
-      ret = pStorage->AppendImage(handle, imageSize, const_cast<unsigned char*>(img->GetPixels()), imageMeta, imageMetaLength);
+      logError(getDeviceName(pStorage).c_str(), getDeviceErrorText(ret, pStorage).c_str());
+      throw CMMError(getDeviceErrorText(ret, pStorage).c_str(), MMERR_DEVICE_GENERIC);
    }
-   else
-   {
-      std::vector<int> coords(coordinates.begin(), coordinates.end());
-      ret = pStorage->AddImage(handle, imageSize, const_cast<unsigned char*>(img->GetPixels()), coords, imageMeta, imageMetaLength);
-   }
+}
+
+/**
+ * Pops the next image from the circular buffer and appends it to the dataset.
+ * This function merges popNextImage() and saveNextImage(). In addition to returning the image it also
+ * sends it to storage. The use case is when we want to save and display the image at the same time.
+ *
+ * \param handle - currently open dataset handle
+ * \param imageMeta - image metadata
+ * \param imageMetaLength - length of the image metadata
+ * \return - image pixels
+ */
+STORAGEIMGOUT CMMCore::appendAndGetNextToDataset(int handle, const char* imageMeta, int imageMetaLength) throw(CMMError)
+{
+   const mm::ImgBuffer* img = cbuf_->GetNextImageBuffer(0);
+   if (!img)
+      throw CMMError(getCoreErrorText(MMERR_CircularBufferEmpty).c_str(), MMERR_CircularBufferEmpty);
+
+   // store the image
+   auto pStorage = getStorageInstanceFromHandle(handle);
+   int ret(0);
+   int imageSize = img->Width() * img->Height() * img->Depth();
+   mm::DeviceModuleLockGuard guard(pStorage);
+   ret = pStorage->AppendImage(handle, imageSize, const_cast<unsigned char*>(img->GetPixels()), imageMeta, imageMetaLength);
    if (ret != DEVICE_OK)
    {
       logError(getDeviceName(pStorage).c_str(), getDeviceErrorText(ret, pStorage).c_str());

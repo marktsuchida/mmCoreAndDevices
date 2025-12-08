@@ -37,26 +37,10 @@ public:
       DeviceInstanceBase<MM::Storage>(core, adapter, name, pDevice, deleteFunction, label, deviceLogger, coreLogger) {}
 
    int Create(int handle, const char* path, const char* name, const std::vector<int>& shape, MM::StorageDataType pixType, const char* meta, int metaLength);
-   int ConfigureDimension(int handle, int dimension, const char* name, const char* meaning);
-   int ConfigureCoordinate(int handle, int dimension, int coordinate, const char* name);
 	int GetPath(int handle, std::string& path);
    int Close(int handle);
-   int Load(int handle, const char* path);
    int GetShape(int handle, std::vector<long>& shape);
    int GetPixelType(int handle, MM::StorageDataType& dataType);
-   int Delete(int handle);
-   int List(const char* path, std::vector<std::string>& datasets);
-   int AddImage(int handle, int sizeInBytes, unsigned char* pixels, std::vector<int>& coordinates, const char* imageMeta, int imageMetaLength);
    int AppendImage(int handle, int sizeInBytes, unsigned char* pixels, const char* imageMeta, int imageMetaLength);
-   int GetSummaryMeta(int handle, std::string& meta);
-   int GetImageMeta(int handle, const std::vector<int>& coordinates, std::string& meta);
-   int GetCustomMeta(int handle, const std::string& key, std::string& meta);
-   int SetCustomMeta(int handle, const std::string& key, const char* meta, int metaLength);
-   const unsigned char* GetImage(int handle, const std::vector<int>& coordinates);
    int GetNumberOfDimensions(int handle, int& numDimensions);
-   int GetDimension(int handle, int dimension, std::string& name, std::string& meaning);
-   int GetCoordinate(int handle, int dimension, int coordinate, std::string& name);
-	int GetImageCount(int handle, int& imgcnt);
-	bool IsOpen(int handle);
-	bool IsReadOnly(int handle);
 };

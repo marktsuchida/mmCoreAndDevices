@@ -649,31 +649,14 @@ public:
    int createDataset(const char* path, const char* name, const std::vector<long>& shape, MM::StorageDataType pixelType, const char* meta, int metaLength) throw (CMMError);
    int createDataset(const char* deviceLabel, const char* path, const char* name, const std::vector<long>& shape, MM::StorageDataType pixelType, const char* meta, int metaLength) throw (CMMError);
    void closeDataset(int handle) throw (CMMError);
-   void freezeDataset(int handle) throw (CMMError);
-   int loadDataset(const char* path) throw (CMMError);
-   int loadDataset(const char* deviceLabel, const char* path) throw (CMMError);
-   std::string getDeviceNameToOpenDataset(const char* path);
    std::string getDatasetPath(int handle) throw (CMMError);
-   bool isDatasetOpen(int handle);
-	bool isDatasetReadOnly(int handle);
    std::vector<long> getDatasetShape(int handle) throw (CMMError);
    MM::StorageDataType getDatasetPixelType(int handle) throw (CMMError);
    void appendImageToDataset(int, int sizeinBytes, const STORAGEIMG pixels, const char* imageMeta, int imageMetaLength) throw (CMMError);
 	void appendImageToDataset(int handle, int sizeinShorts, const STORAGEIMG16 pixels, const char* imageMeta, int imageMetaLength) throw (CMMError);
-   void configureDatasetDimension(int handle, int dimension, const char* name, const char* meaning) throw (CMMError);
-   void configureDatasetCoordinate(int handle, int dimension, int coordinate, const char* name) throw (CMMError);
-	std::string getDatasetDimensionName(int handle, int dimension) throw (CMMError);
-	std::string getDatasetDimensionMeaning(int handle, int dimension) throw (CMMError);
-	std::string getDatasetCoordinateName(int handle, int dimension, int coordinate) throw (CMMError);
-	int getDatasetImageCount(int handle) throw (CMMError);
-   std::string getDatasetSummaryMeta(int handle) throw (CMMError);
-   std::string getDatasetImageMeta(int handle, const std::vector<long>& coordinates) throw (CMMError);
-   void setDatasetCustomMeta(int handle, const char* key, const char* meta, int metaLength);
-   std::string getDatasetCustomMeta(int handle, const char* key);
-	STORAGEIMGOUT getImageFromDataset(int handle, const std::vector<long>& coordinates) throw (CMMError);
-   void snapAndAppendToDataset(int handle, const std::vector<long>& coordinates, const char* imageMeta, int imageMetaLength) throw (CMMError);
-   void appendNextToDataset(int handle, const std::vector<long>& coordinates, const char* imageMeta, int imageMetaLength) throw (CMMError);
-   STORAGEIMGOUT appendAndGetNextToDataset(int handle, const std::vector<long>& coordinates, const char* imageMeta, int imageMetaLength) throw (CMMError);
+   void snapAndAppendToDataset(int handle, const char* imageMeta, int imageMetaLength) throw (CMMError);
+   void appendNextToDataset(int handle, const char* imageMeta, int imageMetaLength) throw (CMMError);
+   STORAGEIMGOUT appendAndGetNextToDataset(int handle, const char* imageMeta, int imageMetaLength) throw (CMMError);
 
    ///@}
 
@@ -759,7 +742,6 @@ private:
    std::shared_ptr<StorageInstance> getStorageInstanceFromHandle(int handle);
    int createDatasetImpl(std::shared_ptr<StorageInstance> pStorage, const char* path, const char* name,
       const std::vector<long>& shape, MM::StorageDataType pixelType, const char* meta, int metaLength) throw (CMMError);
-   int loadDatasetImpl(std::shared_ptr<StorageInstance> pStorage, const char* path) throw (CMMError);
 };
 
 #if defined(__GNUC__) && !defined(__clang__)
