@@ -209,6 +209,9 @@ namespace MM {
    {
       switch (dataType)
       {
+         case StorageDataType_UNKNOWN:
+            return 0;
+
          case StorageDataType_GRAY8:
             return 1;
 
