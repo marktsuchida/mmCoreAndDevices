@@ -745,13 +745,6 @@ void CMMCore::assignDefaultRole(std::shared_ptr<DeviceInstance> pDevice)
          LOG_INFO(coreLogger_) << "Default galvo set to " << label;
          break;
 
-      case MM::StorageDevice:
-         currentStorage_ =
-            std::static_pointer_cast<StorageInstance>(pDevice);
-         LOG_INFO(coreLogger_) << "Default storage set to " << label;
-         break;
-
-
       default:
          // no action on unrecognized device
          break;
@@ -8060,41 +8053,6 @@ std::vector<std::string> CMMCore::getLoadedPeripheralDevices(const char* hubLabe
    return deviceManager_->GetLoadedPeripherals(hubLabel);
 }
 
-void CMMCore::setStorageDevice(const char* storageLabel) throw(CMMError)
-{
-   // TODO: prevent setting storage device if the current one has any datasets open
- 
-   if (storageLabel && strlen(storageLabel) > 0)
-   {
-      currentStorage_ =
-         deviceManager_->GetDeviceOfType<StorageInstance>(storageLabel);
-      LOG_INFO(coreLogger_) << "Default storage set to " << storageLabel;
-   }
-   else
-   {
-      currentStorage_.reset();
-      LOG_INFO(coreLogger_) << "Default storage unset";
-   }
-   properties_->Refresh();
-
-   std::string newStorageLabel = getStorageDevice();
-   {
-      MMThreadGuard scg(stateCacheLock_);
-      stateCache_.addSetting(PropertySetting(MM::g_Keyword_CoreDevice, MM::g_Keyword_CoreCamera, newStorageLabel.c_str()));
-   }
-
-}
-
-std::string CMMCore::getStorageDevice()
-{
-   std::shared_ptr<StorageInstance> pStorage = currentStorage_.lock();
-   if (pStorage)
-   {
-      return pStorage->GetLabel();
-   }
-   return std::string();
-}
-
 int CMMCore::createDatasetImpl(std::shared_ptr<StorageInstance> pStorage, const char* path, const char* name,
    const std::vector<long>& shape, MM::StorageDataType pixelType, const char* meta, int metaLength) throw (CMMError)
 {
@@ -8116,23 +8074,6 @@ int CMMCore::createDatasetImpl(std::shared_ptr<StorageInstance> pStorage, const 
    openDatasetDevices_.insert({handle, pStorage});
    return handle;
 }
-
-/**
- * Create new dataset in the specifed path. Fails if the path already exists.
- * 
- * \param path - parent directory for the dataset
- * \param name - name for the dataset
- * \param shape - array of max coordinates for each dimension (not counting image x and y)
- * \param meta - serialized metadata
- * \param metaLength - length of the metadata string
- * \return - handle for the new dataset
- */
-int CMMCore::createDataset(const char* path, const char* name, const std::vector<long>& shape, MM::StorageDataType pixelType, const char* meta, int metaLength) throw (CMMError)
-{
-   // NOTE: vector<long> is used instead of vector<int> in the signature because of Swig idiosyncracies
-   std::shared_ptr<StorageInstance> pStorage = currentStorage_.lock();
-   return createDatasetImpl(pStorage, path, name, shape, pixelType, meta, metaLength);
- }
 
 /**
  * Create new dataset in the specifed path. Fails if the path already exists.

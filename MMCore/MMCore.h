@@ -282,7 +282,6 @@ public:
    std::string getSLMDevice();
    std::string getGalvoDevice();
    std::string getChannelGroup();
-   std::string getStorageDevice();
    void setCameraDevice(const char* cameraLabel) throw (CMMError);
    void setShutterDevice(const char* shutterLabel) throw (CMMError);
    void setFocusDevice(const char* focusLabel) throw (CMMError);
@@ -292,7 +291,6 @@ public:
    void setSLMDevice(const char* slmLabel) throw (CMMError);
    void setGalvoDevice(const char* galvoLabel) throw (CMMError);
    void setChannelGroup(const char* channelGroup) throw (CMMError);
-   void setStorageDevice(const char* storageLabel) throw (CMMError);
 
    ///@}
 
@@ -646,7 +644,6 @@ public:
 
    /** \name Storage API */
    ///@{
-   int createDataset(const char* path, const char* name, const std::vector<long>& shape, MM::StorageDataType pixelType, const char* meta, int metaLength) throw (CMMError);
    int createDataset(const char* deviceLabel, const char* path, const char* name, const std::vector<long>& shape, MM::StorageDataType pixelType, const char* meta, int metaLength) throw (CMMError);
    void closeDataset(int handle) throw (CMMError);
    std::string getDatasetPath(int handle) throw (CMMError);
@@ -682,7 +679,6 @@ private:
    std::weak_ptr<SLMInstance> currentSLMDevice_;
    std::weak_ptr<GalvoInstance> currentGalvoDevice_;
    std::weak_ptr<ImageProcessorInstance> currentImageProcessor_;
-   std::weak_ptr<StorageInstance> currentStorage_;
 
    std::string channelGroup_;
    long pollingIntervalMs_;
