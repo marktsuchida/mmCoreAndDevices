@@ -8085,7 +8085,7 @@ void CMMCore::setStorageDevice(const char* storageLabel) throw(CMMError)
 
 }
 
-std::string CMMCore::getStorageDevice() throw(CMMError)
+std::string CMMCore::getStorageDevice()
 {
    std::shared_ptr<StorageInstance> pStorage = currentStorage_.lock();
    if (pStorage)
@@ -8624,7 +8624,7 @@ STORAGEIMGOUT CMMCore::getImageFromDataset(int handle, const std::vector<long>& 
  * \param imageMeta - image metadata that we wish to add to the image
  * \param imageMetaLenght - length of the image metadata
  */
-void CMMCore::snapAndAppendToDataset(int handle, const std::vector<long>& coordinates, const char* imageMeta, int imageMetaLength)
+void CMMCore::snapAndAppendToDataset(int handle, const std::vector<long>& coordinates, const char* imageMeta, int imageMetaLength) throw (CMMError)
 {
    snapImage();
 

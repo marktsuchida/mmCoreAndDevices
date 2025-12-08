@@ -53,6 +53,8 @@ libMMCore_la_SOURCES = \
 	Devices/StageInstance.h \
 	Devices/StateInstance.cpp \
 	Devices/StateInstance.h \
+	Devices/StorageInstance.cpp \
+	Devices/StorageInstance.h \
 	Devices/XYStageInstance.cpp \
 	Devices/XYStageInstance.h \
 	Error.cpp \
